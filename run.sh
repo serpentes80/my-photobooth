@@ -1,3 +1,4 @@
 #!/bin/sh
 
-/home/pi/photobooth/.venv/bin/python -m photobooth
+
+${PWD}/.venv/bin/python -m photobooth
