@@ -148,7 +148,8 @@ class CameraGphoto2(CameraInterface):
 
     def getPreview(self):
 
-        shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(camera_config, 'shutterspeed'))
+        config = self._cap.get_config()
+        shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(camera, 'shutterspeed'))
         print(shutterspeed.get_name())
         print(shutterspeed.get_value())
         shutterspeed.set_value("1")
