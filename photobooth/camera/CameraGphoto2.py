@@ -35,6 +35,8 @@ class CameraGphoto2(CameraInterface):
 
         self.hasPreview = True
         self.hasIdle = True
+        self.FirstPreview = True
+        self.BrightPreview = True
 
         logging.info('Using python-gphoto2 bindings')
 
@@ -95,6 +97,8 @@ class CameraGphoto2(CameraInterface):
 
             # apply configuration and print current config
             self._cap.set_config(config)
+            shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
+            self._shutter = shutterspeed.get_value()
         except BaseException as e:
             logging.warn('Error while changing camera settings: {}.'.format(e))
 
@@ -147,19 +151,31 @@ class CameraGphoto2(CameraInterface):
         self._cap.set_config(config)
 
     def getPreview(self):
-
-        config = self._cap.get_config()
-        shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
-        print(shutterspeed.get_name())
-        print(shutterspeed.get_value())
-        shutterspeed.set_value("1")
-        print(shutterspeed.get_name())
-        print(shutterspeed.get_value()) 
+        #increase the shutterspeed for preview in case of using manual flash
+        #TODO read this setting from config
+        if (self.BrightPreview):
+            config = self._cap.get_config()
+            shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
+            #store the original value (allows to change the shutterspeed on the camera)
+            if (self.FirstPreview):
+                self._shutter = shutterspeed.get_value()
+                self.FirstPreview = False
+            #TODO read the shutterspeed for preview from config file
+            gp.check_result(gp.gp_widget_set_value(shutterspeed, "1"))
+            gp.check_result(gp.gp_camera_set_config(self._cap, config))
+         
         camera_file = self._cap.capture_preview()
         file_data = camera_file.get_data_and_size()
         return Image.open(io.BytesIO(file_data))
 
     def getPicture(self):
+        #restore the original shutterspeed changed in getPreview
+        if (self.BrightPreview):
+            config = self._cap.get_config()
+            shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
+            gp.check_result(gp.gp_widget_set_value(shutterspeed, self._shutter))
+            gp.check_result(gp.gp_camera_set_config(self._cap, config))
+            self.FirstPreview = True
 
         file_path = self._cap.capture(gp.GP_CAPTURE_IMAGE)
         camera_file = self._cap.file_get(file_path.folder, file_path.name,
