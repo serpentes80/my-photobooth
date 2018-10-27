@@ -19,3 +19,8 @@ sed -i 's/Icon=nextcloud/Icon=Nextcloud/g' src/gui/nextcloud.desktop
 sed -i 's/Icon\[\(.*\)\]=nextcloud/Icon\[\1\]=Nextcloud/g' src/gui/nextcloud.desktop
 make
 sudo make install
+
+
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/arm-linux-gnueabihf" >> /etc/environment
+echo "/usr/local/lib/arm-linux-gnueabihf" >> /etc/ld.so.conf.d/arm-linux-gnueabihf.conf
+echo "/usr/local/lib/arm-linux-gnueabihf" >> /etc/ld.so.conf.d/x86_64-linux-gnu.conf
