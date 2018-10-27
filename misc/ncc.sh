@@ -24,3 +24,7 @@ sudo make install
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/arm-linux-gnueabihf" >> /etc/environment
 echo "/usr/local/lib/arm-linux-gnueabihf" >> /etc/ld.so.conf.d/arm-linux-gnueabihf.conf
 echo "/usr/local/lib/arm-linux-gnueabihf" >> /etc/ld.so.conf.d/x86_64-linux-gnu.conf
+
+sudo ldconfig
+sudo reboot
+nextcloud
