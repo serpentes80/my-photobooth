@@ -16,38 +16,38 @@ from simple_http_server import Cookie
 from simple_http_server import Redirect
 from simple_http_server import PathValue
 
- from pathlib import Path
+from pathlib import Path
 from time import localtime, strftime
 import datetime
 
- import simple_http_server.server as server
+import simple_http_server.server as server
 
- class Webserver(object):
+class Webserver(object):
     """docstring for Webserver."""
 
-     #As we may have only one server we can declare those variables globally
+    #As we may have only one server we can declare those variables globally
     root = os.path.dirname(os.path.abspath(__file__))
     picture_dir = None
 
-     def __init__(self, config, comm):
+    def __init__(self, config, comm):
         super().__init__()
         self._config = config
         self._comm = comm
 
-         path = config.get('Storage', 'basedir')
+        path = config.get('Storage', 'basedir')
         Webserver.picture_dir = strftime(path, localtime())
 
-     @request_map("/favicon.ico")
+    @request_map("/favicon.ico")
     def _favicon():
         return StaticFile("%s/favicon.ico" % Webserver.root, "image/x-icon")
 
-     @request_map("/")
+    @request_map("/")
     def index():
         logging.debug("Webserver root is: %s" % Webserver.root)
 
-         my_html_file = "%s/templates/index.html" %Webserver.root
+        my_html_file = "%s/templates/index.html" %Webserver.root
 
-         image_list = []
+        image_list = []
         image_list=fnmatch.filter(os.listdir(Webserver.picture_dir), '*.jpg')
         str_image_list = ""
         for i in image_list:
@@ -60,18 +60,18 @@ import datetime
             logging.debug(i)
         logging.debug(str_image_list)
 
-         my_html_stream = open(my_html_file, 'r').read()
+        my_html_stream = open(my_html_file, 'r').read()
         my_html_stream = my_html_stream.replace("[load_images_from_directory]", str_image_list)
 
-         return my_html_stream
+        return my_html_stream
 
-     @request_map("slideshow")
+    @request_map("slideshow")
     def start_slideshow():
         my_html_file = "%s/templates/slideshow.html" %Webserver.root
         my_html_stream = open(my_html_file, 'r').read()
         return my_html_stream
 
-     @request_map("{function}/picture/{picture}")
+    @request_map("{function}/picture/{picture}")
     def return_picture(picture=PathValue(), function=PathValue()):
         logging.debug(function)
         my_pictures_path = "%s" %(Webserver.picture_dir)
@@ -87,14 +87,14 @@ import datetime
         if function == '':
             return Redirect("/")
 
-     # @request_map("pictures/{picture}")
+    # @request_map("pictures/{picture}")
     # def return_picture(picture=PathValue()):
     #     my_pictures_path = "%s" %(Webserver.picture_dir)
     #     my_picture = "%s/%s" % (my_pictures_path, picture)
     #     logging.debug("Loading picture from: %s" %my_picture)
     #     return StaticFile(my_picture, "image/jpg")
 
-     @request_map("api/get_new_pictures/{last_picture_timestamp}")
+    @request_map("api/get_new_pictures/{last_picture_timestamp}")
     def return_new_pictures(last_picture_timestamp=PathValue()):
         logging.debug("URL Timeparam: %s" %last_picture_timestamp)
         my_last_picture_timestamp = datetime.datetime.now()
@@ -107,7 +107,7 @@ import datetime
             my_last_picture_timestamp = datetime.datetime.now()
             logging.warn("No valid timestamp")
 
-         image_list = []
+        image_list = []
         new_pictures = []
         image_list=fnmatch.filter(os.listdir(Webserver.picture_dir), '*.jpg')
         image_list.sort()
@@ -128,12 +128,12 @@ import datetime
                 logging.debug("Send picture")
                 new_pictures.append(i)
 
-         thisdict =	{
+        thisdict =	{
                 "last_picture_timestamp": str(my_last_picture_timestamp),
                 "new_pictures": new_pictures
                 }
         return thisdict
 
-     def run(self):
+    def run(self):
         server.start()
         return True

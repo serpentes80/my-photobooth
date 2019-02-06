@@ -145,7 +145,8 @@ class Camera:
         if self._rotation is not None:
             picture = picture.transpose(self._rotation)
         byte_data = BytesIO()
-        picture.save(byte_data, format='jpeg')
+        #picture.save(filename, 'JPEG', quality=95)
+        picture.save(byte_data, format='jpeg', quality=95)
         self._pictures.append(byte_data)
         self.setActive()
 

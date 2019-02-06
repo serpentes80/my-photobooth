@@ -35,6 +35,8 @@ class CameraGphoto2(CameraInterface):
 
         self.hasPreview = True
         self.hasIdle = True
+        self.FirstPreview = True
+        self.BrightPreview = True
 
         logging.info('Using python-gphoto2 bindings')
 
@@ -43,11 +45,18 @@ class CameraGphoto2(CameraInterface):
 
     def cleanup(self):
 
-        config = self._cap.get_config()
-        config.get_child_by_name('imageformat').set_value(self._imageformat)
-        config.get_child_by_name('imageformatsd').set_value(self._imageformat)
-        # config.get_child_by_name('autopoweroff').set_value(self._autopoweroff)
-        self._cap.set_config(config)
+        try:
+            config = self._cap.get_config()
+            config.get_child_by_name('imageformat').set_value(
+                self._imageformat)
+            config.get_child_by_name('imageformatsd').set_value(
+                self._imageformat)
+            # config.get_child_by_name('autopoweroff').set_value(
+            #     self._autopoweroff)
+            self._cap.set_config(config)
+        except BaseException as e:
+            logging.warn('Error while changing camera settings: {}.'.format(e))
+
         self._cap.exit(self._ctxt)
 
     def _setupLogging(self):
@@ -64,29 +73,35 @@ class CameraGphoto2(CameraInterface):
         logging.info('Camera summary: %s',
                      str(self._cap.get_summary(self._ctxt)))
 
-        # get configuration tree
-        config = self._cap.get_config()
+        try:
+            # get configuration tree
+            config = self._cap.get_config()
 
-        # make sure camera format is not set to raw
-        imageformat = config.get_child_by_name('imageformat')
-        self._imageformat = imageformat.get_value()
-        if 'raw' in self._imageformat.lower():
-            imageformat.set_value('Large Fine JPEG')
-        imageformatsd = config.get_child_by_name('imageformatsd')
-        self._imageformatsd = imageformatsd.get_value()
-        if 'raw' in self._imageformatsd.lower():
-            imageformatsd.set_value('Large Fine JPEG')
+            # make sure camera format is not set to raw
+            imageformat = config.get_child_by_name('imageformat')
+            self._imageformat = imageformat.get_value()
+            if 'raw' in self._imageformat.lower():
+                imageformat.set_value('Large Fine JPEG')
+            imageformatsd = config.get_child_by_name('imageformatsd')
+            self._imageformatsd = imageformatsd.get_value()
+            if 'raw' in self._imageformatsd.lower():
+                imageformatsd.set_value('Large Fine JPEG')
 
-        # make sure autopoweroff is disabled
-        # this doesn't seem to work
-        # autopoweroff = config.get_child_by_name('autopoweroff')
-        # self._autopoweroff = autopoweroff.get_value()
-        # logging.info('autopoweroff: {}'.format(self._autopoweroff))
-        # if int(self._autopoweroff) > 0:
-        #     autopoweroff.set_value('0')
+            # make sure autopoweroff is disabled
+            # this doesn't seem to work
+            # autopoweroff = config.get_child_by_name('autopoweroff')
+            # self._autopoweroff = autopoweroff.get_value()
+            # logging.info('autopoweroff: {}'.format(self._autopoweroff))
+            # if int(self._autopoweroff) > 0:
+            #     autopoweroff.set_value('0')
 
-        # apply configuration and print current config
-        self._cap.set_config(config)
+            # apply configuration and print current config
+            self._cap.set_config(config)
+            shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
+            self._shutter = shutterspeed.get_value()
+        except BaseException as e:
+            logging.warn('Error while changing camera settings: {}.'.format(e))
+
         self._printConfig(self._cap.get_config())
 
     @staticmethod
@@ -136,12 +151,31 @@ class CameraGphoto2(CameraInterface):
         self._cap.set_config(config)
 
     def getPreview(self):
-
+        #increase the shutterspeed for preview in case of using manual flash
+        #TODO read this setting from config
+        if (self.BrightPreview):
+            config = self._cap.get_config()
+            shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
+            #store the original value (allows to change the shutterspeed on the camera)
+            if (self.FirstPreview):
+                self._shutter = shutterspeed.get_value()
+                self.FirstPreview = False
+            #TODO read the shutterspeed for preview from config file
+            gp.check_result(gp.gp_widget_set_value(shutterspeed, "1"))
+            gp.check_result(gp.gp_camera_set_config(self._cap, config))
+         
         camera_file = self._cap.capture_preview()
         file_data = camera_file.get_data_and_size()
         return Image.open(io.BytesIO(file_data))
 
     def getPicture(self):
+        #restore the original shutterspeed changed in getPreview
+        if (self.BrightPreview):
+            config = self._cap.get_config()
+            shutterspeed = gp.check_result(gp.gp_widget_get_child_by_name(config, 'shutterspeed'))
+            gp.check_result(gp.gp_widget_set_value(shutterspeed, self._shutter))
+            gp.check_result(gp.gp_camera_set_config(self._cap, config))
+            self.FirstPreview = True
 
         file_path = self._cap.capture(gp.GP_CAPTURE_IMAGE)
         camera_file = self._cap.file_get(file_path.folder, file_path.name,
